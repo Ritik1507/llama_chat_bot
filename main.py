@@ -18,14 +18,14 @@ documents=loader.load()
 
 #Split Text into Chunks
 text_splitter=RecursiveCharacterTextSplitter(
-                                             chunk_size=500,
-                                             chunk_overlap=50)
+                                             chunk_size=1000,
+                                             chunk_overlap=200)
 text_chunks=text_splitter.split_documents(documents)
 
 
 #Load the Embedding Model
 embeddings=HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2', 
-                                 model_kwargs={'device':'cpu'})
+                                 model_kwargs={'device':'cuda'})
 
 
 #Convert the Text Chunks into Embeddings and Create a FAISS Vector Store
@@ -34,8 +34,8 @@ vector_store=FAISS.from_documents(text_chunks, embeddings)
 
 llm=CTransformers(model="model/llama-2-7b-chat.ggmlv3.q4_0.bin",
                   model_type="llama",
-                  config={'max_new_tokens':128,
-                          'temperature':0.01})
+                  config={'max_new_tokens':1028,
+                          'temperature':0.001})
 
 
 qa_prompt=PromptTemplate(template=template, input_variables=['context', 'question'])

@@ -1,3 +1,4 @@
+import os
 from langchain import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -7,13 +8,49 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms import CTransformers
 from src.helper import *
 from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
+CORS(app)
 
+
+uploads = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['uploads'] = uploads
+
+
+os.makedirs(uploads, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/pdf-upload', methods=['POST'])
+def upload_pdf():
+   
+    if 'pdfFile' not in request.files:
+        return jsonify({'error': 'No file part '}), 400
+    
+    file = request.files['pdfFile']
+    
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        try: 
+          file.save(os.path.join(app.config['uploads'], filename))
+          return jsonify({'message': 'File uploaded successfully'}), 200
+        except Exception as e:
+            return jsonify({'error': f'Error saving file: {str(e)}'}), 500  
+    
+    return jsonify({'error': 'File type not allowed'}), 400
 
 #Load the PDF File
-loader=DirectoryLoader('data/',
+loader=DirectoryLoader('uploads/',
                        glob="*.pdf",
                        loader_cls=PyPDFLoader)
 
@@ -29,7 +66,7 @@ text_chunks=text_splitter.split_documents(documents)
 
 #Load the Embedding Model
 embeddings=HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2', 
-                                 model_kwargs={'device':'cpu'})
+                                 model_kwargs={'device':'cuda'})
 
 
 #Convert the Text Chunks into Embeddings and Create a FAISS Vector Store
@@ -38,8 +75,8 @@ vector_store=FAISS.from_documents(text_chunks, embeddings)
 
 llm=CTransformers(model="model/llama-2-7b-chat.ggmlv3.q4_0.bin",
                   model_type="llama",
-                  config={'max_new_tokens':128,
-                          'temperature':0.01})
+                  config={'max_new_tokens':512,
+                          'temperature':0.001})
 
 
 qa_prompt=PromptTemplate(template=template, input_variables=['context', 'question'])
@@ -66,11 +103,15 @@ def index():
 def chatbotResponse():
 
     if request.method == 'POST':
-        user_input = request.form['question']
-        print(user_input)
-
-        result=chain({'query':user_input})
-        print(f"Answer:{result['result']}")
+        
+     data = request.json
+     if not data or 'query' not in data:
+        return jsonify({"error": "No query provided"}), 400
+    
+    user_input = data['query']
+    print(user_input)
+    result=chain({'query':user_input})
+    print(f"Answer:{result['result']}")
 
     return jsonify({"response": str(result['result']) })
 
