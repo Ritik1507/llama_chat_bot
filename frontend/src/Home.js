@@ -8,6 +8,7 @@ const Home = () => {
   const [pastResponses, setPastResponses] = useState([]);
   const [query, setQuery] = useState('')
   const [output, setOutput] = useState('')
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
    
@@ -67,13 +68,19 @@ const Home = () => {
   };
   const handleQuerySubmit = (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setOutput('');
     axios.post('http://127.0.0.1:8080/chatbot', {query: query})
       .then((res) => {
         setOutput(res.data.response || JSON.stringify(res.data));
-        console.log(res.data)
+        console.log(res.data);
       })
       .catch((err) => {
         console.log(err);
+        setOutput('An error occurred while processing your query.');
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }
   return (
@@ -99,28 +106,36 @@ const Home = () => {
                     
                 
       <div>
-        <form className="fr1"onSubmit={handleQuerySubmit}>
+        <form className="fr1" onSubmit={handleQuerySubmit}>
           <input
-          type='text' className='fr2'
-          placeholder='Enter your query'
-          onChange={(e)=>setQuery(e.target.value)}/>
-          <button className="button browse submit"type='submit'>Submit</button>
+            type='text'
+            className='fr2'
+            placeholder='Enter your query'
+            onChange={(e) => setQuery(e.target.value)}
+            disabled={isLoading}
+          />
+          <button 
+            className="button browse submit" 
+            type='submit'
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : 'Submit'}
+          </button>
         </form>
-        {output && <div className='response-message'>
-        <div class="chat-bubble right">
-                        
-                        <div class="message" ng-bind-html="message.text | nl2br" autolinker>
-                        </div>
-                
-                        <div class="message-detail">
-                            <span ng-click="viewProfile(message)" class="bold">{output}</span> 
-                            <span am-time-ago="message.date"></span>
-                        </div>
-                
-                    </div>
-          </div>}
+        {isLoading && <div className="loader">Loading...</div>}
+        {output && (
+          <div className='response-message'>
+            <div className="chat-bubble right">
+              <div className="message" ng-bind-html="message.text | nl2br" autolinker>
+              </div>
+              <div className="message-detail">
+                <span ng-click="viewProfile(message)" className="bold">{output}</span> 
+                <span am-time-ago="message.date"></span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
     </div>
     </div>
     

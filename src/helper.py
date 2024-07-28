@@ -14,7 +14,8 @@ CUSTOM_SYSTEM_PROMPT="You are an advanced assistant who excels in providing summ
 
 
 
-template="""Use the following pieces of information to answer the user's question.
+template="""
+Use the following pieces of information to answer the user's question.
 If you dont know the answer just say you don't know, don't try to make up an answer.
 
 Context:{context}

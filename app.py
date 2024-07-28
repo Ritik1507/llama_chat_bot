@@ -76,7 +76,7 @@ vector_store=FAISS.from_documents(text_chunks, embeddings)
 llm=CTransformers(model="model/llama-2-7b-chat.ggmlv3.q4_0.bin",
                   model_type="llama",
                   config={'max_new_tokens':512,
-                          'temperature':0.001})
+                          'temperature':0.1})
 
 
 qa_prompt=PromptTemplate(template=template, input_variables=['context', 'question'])
